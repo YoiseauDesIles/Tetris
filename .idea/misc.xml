@@ -13,11 +13,12 @@
         <entry key="..\:/_Projets/Android/Tetris/app/src/main/res/drawable/gray2.xml" value="0.3105" />
         <entry key="..\:/_Projets/Android/Tetris/app/src/main/res/drawable/green.xml" value="0.3105" />
         <entry key="..\:/_Projets/Android/Tetris/app/src/main/res/layout/activity_main.xml" value="0.3625" />
+        <entry key="..\:/_Projets/Android/Tetris/app/src/main/res/layout/f.xml" value="0.3614583333333333" />
         <entry key="..\:/_Projets/Android/Tetris/app/src/main/res/layout/game.xml" value="0.22" />
       </map>
     </option>
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="Android Studio default JDK" project-jdk-type="JavaSDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_17" default="true" project-jdk-name="jbr-17" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/build/classes" />
   </component>
   <component name="ProjectType">
