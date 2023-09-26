@@ -10,7 +10,7 @@ class Point (val x: Int, val y: Int) {
         this.type = type
     }
 
-    fun isStablePoint() : Boolean {
+    fun isStablePoint() : Boolean? {
         return !isFallingPoint && type == PointType.BOX
     }
 }

@@ -3,7 +3,9 @@ package android.gameengine.tetris.presenters
 interface GameModel {
 
     val FPS: Int
+        get() = 60
     val SPEED: Int
+        get() = 25
 
 
     fun init()
