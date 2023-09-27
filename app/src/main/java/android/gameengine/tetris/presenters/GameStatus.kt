@@ -1,12 +1,13 @@
 package android.gameengine.tetris.presenters
 
-enum class GameStatus (val value: String){
+enum class GameStatus (val mValue: String){
 
     START("START"),
     PLAYING("PLAYING"),
     OVER("GAME OVER"),
-    PAUSED("GAME PAUSED");
+    PAUSED("GAME PAUSED"),
+    NOT_INITIALIZED("NOT INITIALIZED");
 
-    fun getValue() = value
+    fun getValue() = mValue
 
 }

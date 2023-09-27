@@ -7,7 +7,7 @@ class Point (val x: Int, val y: Int) {
 
     constructor(x: Int, y : Int, pointType: PointType, isFallingPoint: Boolean) : this(x, y) {
         this.isFallingPoint = isFallingPoint
-        this.type = type
+        this.type = pointType
     }
 
     fun isStablePoint() : Boolean? {

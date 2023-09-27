@@ -1,10 +1,12 @@
 package android.gameengine.tetris.presenters
 
+import android.widget.Toast
+
 class GamePresenter {
 
     private lateinit var mGameView :GameView
     private lateinit var mGameModel: GameModel
-    private lateinit var mStatus: GameStatus
+    private var mStatus: GameStatus? = null
 
 
     fun setGameView(gameView: GameView) {
@@ -20,12 +22,12 @@ class GamePresenter {
         mGameModel.init()
 
         mGameModel.setGameOverListener(object : PresenterCompletableObserver {
-            override fun onNext() {
+             override fun observe() {
                 setStatus(GameStatus.OVER)
             }
         })
         mGameModel.setScoreUpdatedListener(object : PresenterObserver<Int> {
-            override fun onNext(t: Int) {
+            override fun observe(t: Int) {
                 mGameView.setScore(t)
             }
         })
@@ -52,7 +54,7 @@ class GamePresenter {
     private fun startGame() {
         setStatus(GameStatus.PLAYING)
         mGameModel.startGame(object : PresenterObserver<Array<Array<Point>>> {
-            override fun onNext(grid: Array<Array<Point>>) {
+            override fun observe(grid: Array<Array<Point>>) {
                 mGameView.draw(grid)
             }
         } )

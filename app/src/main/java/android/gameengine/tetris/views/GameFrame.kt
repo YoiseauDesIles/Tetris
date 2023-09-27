@@ -8,6 +8,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.View
+import kotlin.math.min
 
 class GameFrame : View {
 
@@ -20,16 +21,17 @@ class GameFrame : View {
     constructor(context: Context?, attrs: AttributeSet?, defStyleAttr: Int, defStyleRes: Int) :
             super(context, attrs, defStyleAttr, defStyleRes)
 
-    private lateinit var mPoints : Array<Array<Point>>
+    private var mPoints : Array<Array<Point>>? = null
     private var mBoxSize: Int = 0
     private var mBoxPadding: Int = 0
     private var mGameSize: Int = 0
     private val mPaint: Paint = Paint()
 
-    fun init(gamesize: Int) {
-        mGameSize = gamesize
+    fun init(gameSize: Int) {
+
+        mGameSize = gameSize
         viewTreeObserver.addOnGlobalLayoutListener {
-            mBoxSize = Math.min(width, height) / mGameSize
+            mBoxSize = min(width, height) / mGameSize
             mBoxPadding = mBoxSize / 10
         }
     }
@@ -38,7 +40,9 @@ class GameFrame : View {
         mPoints = points
     }
 
-    private fun getPoint(x: Int, y: Int) = mPoints[x][y]
+    private fun getPoint(x: Int, y: Int): Point? {
+      return mPoints?.get(x)?.get(y)
+    }
 
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
@@ -48,13 +52,13 @@ class GameFrame : View {
             return
         for (i in 0 until mGameSize) {
             for (j in 0 until mGameSize) {
-                var point: Point = getPoint(i, j)
+                var point: Point? = getPoint(i, j)
                 var left: Int = 0
                 var right: Int = 0
                 var top: Int = 0
                 var bottom: Int = 0
                 mPaint.color = Color.WHITE
-                when(point.type) {
+                when(point?.type) {
                     PointType.BOX -> {
                         left = mBoxSize * point.x + mBoxPadding;
                         right = left + mBoxSize - mBoxPadding
@@ -77,9 +81,9 @@ class GameFrame : View {
 
                     }
                     else -> {
-                        left = mBoxSize * point.x
+                        left = mBoxSize * (point?.x ?: 0)
                         right = left + mBoxSize
-                        top = mBoxSize * point.y
+                        top = mBoxSize * (point?.y ?: 0)
                         bottom = top + mBoxSize
                         mPaint.color = Color.BLACK
                     }

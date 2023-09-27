@@ -37,6 +37,7 @@ class TetrisGameModel : GameModel {
     private lateinit var mGameOverObserver: PresenterCompletableObserver
     private lateinit var mScoreUpdatedObserver: PresenterObserver<Int>
 
+
     private enum class BrickType(val mValue: Int) {
         L(0), T(1), CHAIR(2), STICK(3), SQUARE(4);
 
@@ -84,7 +85,7 @@ class TetrisGameModel : GameModel {
     }
 
     override fun getGameSize(): Int {
-        TODO("Not yet implemented")
+        return GAME_SIZE
     }
 
     override fun newGame() {
@@ -128,7 +129,7 @@ class TetrisGameModel : GameModel {
                 mUpcomingPoints[0][1].type = PointType.BOX
                 mUpcomingPoints[1][1].type = PointType.BOX
                 mUpcomingPoints[2][1].type = PointType.BOX
-                mUpcomingPoints[3][2].type = PointType.BOX
+                mUpcomingPoints[3][1].type = PointType.BOX
             }
             BrickType.SQUARE -> {
                 mUpcomingPoints[1][1].type = PointType.BOX
@@ -157,81 +158,84 @@ class TetrisGameModel : GameModel {
                     if (mIsTurning.get())
                         continue
                     next()
-                    mHandler.post { onGameDrawnListener.observe(mPlayingPoints) }
+                    mHandler.post { onGameDrawnListener.observe(mPoints) }
                 }
                 count++
             }
         }.start()
     }
 
-    @Synchronized
     private fun next() {
-        updateFallingPoints()
+        synchronized(this) {
 
-        if (isNextMerged()) {
-            if (isOutSide()) {
-                if (mGameOverObserver != null) {
-                    mHandler.post(mGameOverObserver::observe)
-                }
-                mIsGamePaused.set(true)
-                return
-            }
+            updateFallingPoints()
 
-            var y: Int = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                mFallingPoints.stream().mapToInt { p -> p.y }.max().orElse(-1)
-            } else {
-                -1
-            }
-
-            while (y >= 0) {
-                var isScored = true
-                for (i in 0 until PLAYING_AREA_WIDTH) {
-                    val point: Point? = getPlayingPoint(i, y)
-                    if (point?.type == PointType.EMPTY) {
-                        isScored = false
-                        break
+            if (isNextMerged()) {
+                if (isOutSide()) {
+                    if (mGameOverObserver != null) {
+                        mHandler.post(mGameOverObserver::observe)
                     }
+                    mIsGamePaused.set(true)
+                    return
                 }
-                if (isScored) {
-                    mScore++
-                    if (mScoreUpdatedObserver != null) {
-                        mHandler.post { mScoreUpdatedObserver.observe(mScore) }
+
+                var y: Int = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    mFallingPoints.stream().mapToInt { p -> p.y }.max().orElse(-1)
+                } else {
+                    -1
+                }
+
+                while (y >= 0) {
+                    var isScored = true
+                    for (i in 0 until PLAYING_AREA_WIDTH) {
+                        val point: Point? = getPlayingPoint(i, y)
+                        if (point?.type == PointType.EMPTY) {
+                            isScored = false
+                            break
+                        }
                     }
-                    val tmPoints : LinkedList<Point> = LinkedList<Point>()
-                    for (i in 0 until y) {
-                        for (j in 0 until PLAYING_AREA_WIDTH) {
-                            val point = getPlayingPoint(j, i)
-                            if (point?.type == PointType.BOX) {
-                                point.type = PointType.EMPTY
-                                if (i != y) {
-                                    tmPoints.add(Point(point.x, point.y,
-                                        PointType.BOX, false))
+                    if (isScored) {
+                        mScore++
+                        if (mScoreUpdatedObserver != null) {
+                            mHandler.post { mScoreUpdatedObserver.observe(mScore) }
+                        }
+                        val tmPoints : LinkedList<Point> = LinkedList<Point>()
+                        for (i in 0 until y) {
+                            for (j in 0 until PLAYING_AREA_WIDTH) {
+                                val point = getPlayingPoint(j, i)
+                                if (point?.type == PointType.BOX) {
+                                    point.type = PointType.EMPTY
+                                    if (i != y) {
+                                        tmPoints.add(Point(point.x, point.y,
+                                            PointType.BOX, false))
+                                    }
                                 }
                             }
                         }
+                        tmPoints.forEach(this::updatePlayingPoints)
+                    }else {
+                        y--
                     }
-                    tmPoints.forEach(this::updatePlayingPoints)
-                }else {
-                    y--
+                }
+                mFallingPoints.forEach { p-> p.isFallingPoint = false}
+                mFallingPoints.clear()
+            } else {
+                val tmPoints : LinkedList<Point> = LinkedList<Point>()
+                for (fallingPoint: Point in mFallingPoints) {
+                    fallingPoint.type = PointType.EMPTY
+                    fallingPoint.isFallingPoint = false
+                    tmPoints.add(
+                        Point(fallingPoint.x, fallingPoint.y + 1,
+                            PointType.BOX, true)
+                    )
+                    mFallingPoints.clear()
+                    mFallingPoints.addAll(tmPoints)
+                    mFallingPoints.forEach(this::updatePlayingPoints)
+
                 }
             }
-            mFallingPoints.forEach { p-> p.isFallingPoint = false}
-            mFallingPoints.clear()
-        } else {
-            val tmPoints : LinkedList<Point> = LinkedList<Point>()
-            for (fallingPoint: Point in mFallingPoints) {
-                fallingPoint.type = PointType.EMPTY
-                fallingPoint.isFallingPoint = false
-                tmPoints.add(
-                    Point(fallingPoint.x, fallingPoint.y + 1,
-                    PointType.BOX, true)
-                )
-                mFallingPoints.clear()
-                mFallingPoints.addAll(tmPoints)
-                mFallingPoints.forEach(this::updatePlayingPoints)
-
-            }
         }
+
     }
 
     private fun updateFallingPoints() {
@@ -277,7 +281,7 @@ class TetrisGameModel : GameModel {
     }
 
     private fun getPlayingPoint(x: Int, y: Int): Point? {
-        if (x >= 0 && y <= 0 && x < PLAYING_AREA_HEIGHT && y < PLAYING_AREA_HEIGHT) {
+        if (x >= 0 && y >= 0 && x < PLAYING_AREA_HEIGHT && y < PLAYING_AREA_HEIGHT) {
             return mPlayingPoints[y][x]
         }
         return null
@@ -287,7 +291,7 @@ class TetrisGameModel : GameModel {
     }
 
     override fun turn(gameTurn: GameTurn) {
-        TODO("Not yet implemented")
+        //
     }
 
     override fun setGameOverListener(onGameOverListener: PresenterCompletableObserver) {

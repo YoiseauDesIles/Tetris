@@ -27,7 +27,7 @@ class GameViewImpl(
     }
 
     override fun setStatus(status: GameStatus) {
-        mGameStatusText.text = status.value
+        mGameStatusText.text = status.mValue
         mGameStatusText.visibility = if (status == GameStatus.PLAYING) View.VISIBLE else View.INVISIBLE
         mGameCtlBtn.text = if (status == GameStatus.PLAYING) "Pause" else "Start"
     }
