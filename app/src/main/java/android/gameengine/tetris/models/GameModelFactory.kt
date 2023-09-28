@@ -1,4 +1,4 @@
-package android.gameengine.tetris.views
+package android.gameengine.tetris.models
 
 import android.gameengine.tetris.models.GameType
 import android.gameengine.tetris.models.TetrisGameModel

@@ -12,6 +12,7 @@ import java.util.LinkedList
 import java.util.Random
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.log
+import kotlin.math.max
 
 class TetrisGameModel : GameModel {
 
@@ -200,13 +201,13 @@ class TetrisGameModel : GameModel {
                             mHandler.post { mScoreUpdatedObserver.observe(mScore) }
                         }
                         val tmPoints : LinkedList<Point> = LinkedList<Point>()
-                        for (i in 0 until y) {
+                        for (i in y downTo 0) {
                             for (j in 0 until PLAYING_AREA_WIDTH) {
                                 val point = getPlayingPoint(j, i)
                                 if (point?.type == PointType.BOX) {
                                     point.type = PointType.EMPTY
                                     if (i != y) {
-                                        tmPoints.add(Point(point.x, point.y,
+                                        tmPoints.add(Point(point.x, point.y + 1,
                                             PointType.BOX, false))
                                     }
                                 }
@@ -228,11 +229,10 @@ class TetrisGameModel : GameModel {
                         Point(fallingPoint.x, fallingPoint.y + 1,
                             PointType.BOX, true)
                     )
-                    mFallingPoints.clear()
-                    mFallingPoints.addAll(tmPoints)
-                    mFallingPoints.forEach(this::updatePlayingPoints)
-
                 }
+                mFallingPoints.clear()
+                mFallingPoints.addAll(tmPoints)
+                mFallingPoints.forEach(this::updatePlayingPoints)
             }
         }
 
@@ -273,7 +273,7 @@ class TetrisGameModel : GameModel {
     }
 
     private fun updatePlayingPoints(point : Point) {
-        if (point.x >= 0 && point.x < PLAYING_AREA_WIDTH &&
+        if (point.x in 0 until PLAYING_AREA_WIDTH &&
             point.y >= 0 && point.y < PLAYING_AREA_HEIGHT) {
             mPoints[point.y][point.x] = point
             mPlayingPoints[point.y][point.x] = point
@@ -290,8 +290,149 @@ class TetrisGameModel : GameModel {
         mIsGamePaused.set(true)
     }
 
-    override fun turn(gameTurn: GameTurn) {
-        //
+    override fun turn(turn: GameTurn) {
+        if (mIsGamePaused.get() || mIsTurning.get()) {
+            return
+        }
+
+        mIsTurning.set(true)
+        val tmPoints = LinkedList<Point>()
+        var canTurn : Boolean
+
+        when (turn){
+            GameTurn.LEFT -> {
+                updateFallingPoints()
+                canTurn = true
+                for (fallingPoint: Point in mFallingPoints) {
+                    if (fallingPoint.y >= 0 && (fallingPoint.x == 0) ||
+                        getPlayingPoint(fallingPoint.x - 1, fallingPoint.y)?.isStablePoint() == true) {
+                        canTurn = false
+                        break
+                    }
+                }
+                if (canTurn) {
+                    for (fallingPoint in mFallingPoints) {
+                        tmPoints.add(Point(fallingPoint.x - 1, fallingPoint.y, PointType.BOX, true))
+                        fallingPoint.type = PointType.EMPTY
+                        fallingPoint.isFallingPoint = false
+                    }
+                    mFallingPoints.clear()
+                    mFallingPoints.addAll(tmPoints)
+                    mFallingPoints.forEach {  this.updatePlayingPoints(it) }
+                }
+            }
+            GameTurn.RIGHT -> {
+                updateFallingPoints()
+                canTurn = true
+                for (fallingPoint: Point in mFallingPoints) {
+                    if (fallingPoint.y >= 0 && (fallingPoint.x == PLAYING_AREA_WIDTH - 1) ||
+                        getPlayingPoint(fallingPoint.x + 1, fallingPoint.y)?.isStablePoint() == true) {
+                        canTurn = false
+                        break
+                    }
+                }
+                if (canTurn) {
+                    for (fallingPoint in mFallingPoints) {
+                        tmPoints.add(Point(fallingPoint.x + 1, fallingPoint.y, PointType.BOX, true))
+                        fallingPoint.type = PointType.EMPTY
+                        fallingPoint.isFallingPoint = false
+                    }
+                    mFallingPoints.clear()
+                    mFallingPoints.addAll(tmPoints)
+                    mFallingPoints.forEach { this.updatePlayingPoints(it) }
+                }
+            }
+            GameTurn.DOWN -> {
+                next()
+            }
+            GameTurn.FIRE -> {
+                rotateFallingPoints()
+            }
+            else -> {}
+
+        }
+
+        mIsTurning.set(false)
+
+    }
+
+    private fun rotateFallingPoints() {
+        updateFallingPoints()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            val left = mFallingPoints.stream().mapToInt { p -> p.x }.min().orElse(-1)
+            val right = mFallingPoints.stream().mapToInt { p -> p.x }.max().orElse(-1)
+            val top = mFallingPoints.stream().mapToInt { p -> p.y }.min().orElse(-1)
+            val bottom = mFallingPoints.stream().mapToInt { p -> p.y }.max().orElse(-1)
+            val size = max(right -left, bottom - top) + 1
+
+            if (rotatePoints(left, top, size))
+                return
+            if (rotatePoints(right - size + 1, top, size))
+                return
+            if (rotatePoints(left, bottom - size + 1, size))
+                return
+
+            rotatePoints(right - size + 1, bottom - size + 1, size)
+
+        } else {
+            println("Error SDK Build version")
+        }
+
+    }
+
+    private fun rotatePoints(x: Int, y: Int, size: Int): Boolean {
+        if (x + size - 1 < 0 || x + size - 1 >= PLAYING_AREA_WIDTH) {
+            return false
+        }
+
+        var canRotate : Boolean = true
+        val points : Array<Array<Point?>> = Array(size) { arrayOfNulls<Point>(size) }
+
+        for (i in 0 until size){
+            for (j in 0 until size){
+                var point = getPlayingPoint(j + x, i + y);
+                if (point == null) {
+                    val tmpX = x + j;
+                    val tmpY = y + j;
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        point = mFallingPoints.stream()
+                            .filter { p -> p.x == tmpX && p.y == tmpY }
+                            .findFirst()
+                            .orElse(Point(j + x, i + y))
+                    } else {
+                        println("Error SDK, cannot get point")
+                    }
+                }
+                if (point?.isStablePoint() == true && getPlayingPoint(x + size - 1, y + j )?.isFallingPoint == true){
+                    canRotate = false
+                    break
+                }
+                points[i][j] = Point(x + size -1 -i, y + j, point?.type ?: PointType.EMPTY,
+                    point?.isFallingPoint ?: false
+                )
+            }
+            if (!canRotate)
+                break
+        }
+        if (!canRotate)
+            return false
+
+        for (i in 0 until size){
+            for (j in 0 until size){
+                val point = getPlayingPoint(i + y, j + x) ?: continue
+                point.type = PointType.EMPTY
+            }
+        }
+        mFallingPoints.clear()
+        for (i in 0 until size){
+            for (j in 0 until size){
+                points[i][j]?.let { updatePlayingPoints(it) }
+                if (points[i][j]?.isFallingPoint == true) {
+                    points[i][j]?.let { mFallingPoints.add(it) }
+                }
+            }
+        }
+        return true
     }
 
     override fun setGameOverListener(onGameOverListener: PresenterCompletableObserver) {

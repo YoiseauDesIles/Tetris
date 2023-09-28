@@ -57,7 +57,7 @@ class GameFrame : View {
                 var right: Int = 0
                 var top: Int = 0
                 var bottom: Int = 0
-                mPaint.color = Color.WHITE
+                mPaint.color = Color.BLUE
                 when(point?.type) {
                     PointType.BOX -> {
                         left = mBoxSize * point.x + mBoxPadding;
